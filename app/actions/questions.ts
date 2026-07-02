@@ -1,6 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin1234";
@@ -37,7 +38,7 @@ export async function registerExam(date: string, password: string, questions: Qu
     const day = date.substring(6, 8);
     const title = `${year}년 ${month}월 ${day}일 실시 기출문제`;
 
-    await db.$transaction(async (tx) => {
+    await db.$transaction(async (tx: Prisma.TransactionClient) => {
       // Delete existing exam if it exists
       const existing = await tx.exam.findUnique({
         where: { date }
