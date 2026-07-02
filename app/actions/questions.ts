@@ -238,3 +238,21 @@ export async function getExamHistory(historyId: string) {
     return { success: false, error: error.message || "풀이 기록을 불러오지 못했습니다.", history: null, questions: [] };
   }
 }
+
+export async function deleteExam(examId: string, password: string) {
+  try {
+    if (password !== ADMIN_PASSWORD) {
+      return { success: false, error: "관리자 비밀번호가 올바르지 않습니다." };
+    }
+
+    await db.exam.delete({
+      where: { id: examId }
+    });
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    console.error("deleteExam error:", error);
+    return { success: false, error: error.message || "시험 삭제 중 오류가 발생했습니다." };
+  }
+}

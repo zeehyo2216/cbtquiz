@@ -1,16 +1,16 @@
 "use client"
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { registerExam, QuestionInput } from "@/app/actions/questions";
+import { registerExam, deleteExam, getExams, getExamDetail, QuestionInput } from "@/app/actions/questions";
 import { sampleQuestions } from "@/lib/sampleQuestions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Database, Eye, Lock, RefreshCw, Save } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Database, Edit2, Eye, Lock, RefreshCw, Save, Trash2 } from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -34,8 +34,27 @@ export default function AdminPage() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState({ type: "", text: "" });
+  
+  const [exams, setExams] = useState<any[]>([]);
+  const [isLoadingExams, setIsLoadingExams] = useState(false);
+  const [editingExamId, setEditingExamId] = useState<string | null>(null);
 
   const activeQuestion = questions[activeIdx];
+
+  const fetchExamsList = async () => {
+    setIsLoadingExams(true);
+    const res = await getExams();
+    setIsLoadingExams(false);
+    if (res.success) {
+      setExams(res.exams || []);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchExamsList();
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +87,76 @@ export default function AdminPage() {
     setSubmitMessage({ type: "info", text: "60개 샘플 기출문제가 로드되었습니다. 날짜를 확인하고 등록하세요." });
   };
 
+  const handleEditLoad = async (examId: string) => {
+    setIsSubmitting(true);
+    setSubmitMessage({ type: "info", text: "시험 데이터를 불러오는 중..." });
+    const res = await getExamDetail(examId);
+    setIsSubmitting(false);
+    if (res.success && res.exam) {
+      setExamDate(res.exam.date);
+      setEditingExamId(res.exam.id);
+      
+      const formattedQuestions = Array.from({ length: 60 }, (_, i) => {
+        const qNum = i + 1;
+        const existingQ = res.exam.questions.find((q: any) => q.number === qNum);
+        return {
+          number: qNum,
+          content: existingQ?.content || "",
+          option1: existingQ?.option1 || "",
+          option2: existingQ?.option2 || "",
+          option3: existingQ?.option3 || "",
+          option4: existingQ?.option4 || "",
+          answer: existingQ?.answer || 1,
+        };
+      });
+      setQuestions(formattedQuestions);
+      setActiveIdx(0);
+      setSubmitMessage({ type: "info", text: `[${res.exam.title}] 수정 모드로 전환되었습니다.` });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      setSubmitMessage({ type: "error", text: res.error || "시험을 불러오지 못했습니다." });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingExamId(null);
+    setExamDate("20170305");
+    setQuestions(
+      Array.from({ length: 60 }, (_, i) => ({
+        number: i + 1,
+        content: "",
+        option1: "",
+        option2: "",
+        option3: "",
+        option4: "",
+        answer: 1,
+      }))
+    );
+    setActiveIdx(0);
+    setSubmitMessage({ type: "", text: "" });
+  };
+
+  const handleDelete = async (examId: string, examTitle: string) => {
+    if (!confirm(`정말로 [${examTitle}] 시험을 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.`)) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitMessage({ type: "info", text: "시험 삭제 중..." });
+    const res = await deleteExam(examId, adminPass);
+    setIsSubmitting(false);
+
+    if (res.success) {
+      setSubmitMessage({ type: "success", text: "시험이 성공적으로 삭제되었습니다." });
+      fetchExamsList();
+      if (editingExamId === examId) {
+        handleCancelEdit();
+      }
+    } else {
+      setSubmitMessage({ type: "error", text: res.error || "삭제 도중 오류가 발생했습니다." });
+    }
+  };
+
   const handleRegister = async () => {
     setIsSubmitting(true);
     setSubmitMessage({ type: "", text: "" });
@@ -85,10 +174,27 @@ export default function AdminPage() {
     setIsSubmitting(false);
 
     if (res.success) {
-      setSubmitMessage({ type: "success", text: "기출문제가 성공적으로 등록되었습니다!" });
-      setTimeout(() => {
-        router.push("/");
-      }, 1500);
+      setSubmitMessage({
+        type: "success",
+        text: editingExamId ? "기출문제가 성공적으로 수정되었습니다!" : "기출문제가 성공적으로 등록되었습니다!"
+      });
+      setEditingExamId(null);
+      fetchExamsList();
+      
+      // Reset form
+      setQuestions(
+        Array.from({ length: 60 }, (_, i) => ({
+          number: i + 1,
+          content: "",
+          option1: "",
+          option2: "",
+          option3: "",
+          option4: "",
+          answer: 1,
+        }))
+      );
+      setExamDate("20170305");
+      setActiveIdx(0);
     } else {
       setSubmitMessage({ type: "error", text: res.error || "등록 도중 오류가 발생했습니다." });
     }
@@ -158,6 +264,53 @@ export default function AdminPage() {
 
       {/* Admin Layout */}
       <div className="flex-1 overflow-y-auto px-5 py-6 pb-24 space-y-6">
+        {/* Existing Exams Section */}
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            등록된 기출문제 관리 ({exams.length}개)
+          </h3>
+          <Card className="bg-[#1e293b]/20 border-[#1e293b]/80 rounded-xl">
+            <CardContent className="p-4">
+              {isLoadingExams ? (
+                <div className="text-center py-6 text-slate-400 text-xs">시험 목록을 불러오는 중...</div>
+              ) : exams.length === 0 ? (
+                <div className="text-center py-6 text-slate-500 text-xs">등록된 시험이 없습니다.</div>
+              ) : (
+                <div className="divide-y divide-[#1e293b]/40">
+                  {exams.map((ex) => (
+                    <div key={ex.id} className="py-3 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-200">{ex.title}</h4>
+                        <p className="text-[10px] text-slate-500 mt-0.5">날짜: {ex.date} • 문항 수: {ex._count?.questions || 0}개</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Button
+                          onClick={() => handleEditLoad(ex.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 text-xs gap-1 px-2.5 rounded-lg border border-indigo-500/15"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                          <span>수정</span>
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(ex.id, ex.title)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs gap-1 px-2.5 rounded-lg border border-rose-500/15"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>삭제</span>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
         {/* Step 1: Exam Info */}
         <section className="space-y-2">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -208,7 +361,9 @@ export default function AdminPage() {
                 <span className="h-6 w-6 rounded-md bg-indigo-500 text-white font-bold text-[11px] flex items-center justify-center">
                   Q{activeQuestion.number}
                 </span>
-                <span className="text-slate-300 text-xs font-semibold">문항 작성기</span>
+                <span className="text-slate-300 text-xs font-semibold">
+                  {editingExamId ? "문항 수정기 (편집 중)" : "문항 작성기 (신규 등록)"}
+                </span>
               </div>
               <div className="flex items-center space-x-1">
                 <Button
@@ -322,6 +477,16 @@ export default function AdminPage() {
 
       {/* Floating Save Actions Bar */}
       <div className="max-w-md w-full border-t border-[#1e293b]/60 bg-[#0f172a]/95 backdrop-blur-md px-5 py-4 flex gap-3 absolute bottom-0 z-40 shadow-2xl">
+        {editingExamId && (
+          <Button
+            type="button"
+            onClick={handleCancelEdit}
+            variant="outline"
+            className="border-slate-500/30 hover:bg-slate-500/10 text-slate-300 text-xs h-11 rounded-xl px-4"
+          >
+            수정 취소
+          </Button>
+        )}
         <Button
           type="button"
           onClick={handleRegister}
@@ -331,12 +496,12 @@ export default function AdminPage() {
           {isSubmitting ? (
             <>
               <RefreshCw className="h-4 w-4 animate-spin" />
-              <span>시험 문제 등록 중...</span>
+              <span>{editingExamId ? "시험 문제 수정 중..." : "시험 문제 등록 중..."}</span>
             </>
           ) : (
             <>
               <Save className="h-4 w-4" />
-              <span>기출문제 정식 등록하기</span>
+              <span>{editingExamId ? "기출문제 수정사항 저장하기" : "기출문제 정식 등록하기"}</span>
             </>
           )}
         </Button>
