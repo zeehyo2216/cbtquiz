@@ -1,0 +1,45 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Exam {
+  id        String   @id @default(uuid())
+  date      String   @unique // 예: "20170305"
+  title     String   // 예: "2017년 3월 5일 기출문제"
+  createdAt DateTime @default(now())
+  questions Question[]
+  histories ExamHistory[]
+}
+
+model Question {
+  id        String   @id @default(uuid())
+  examId    String
+  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  number    Int      // 1 ~ 60
+  content   String   // 문제 내용
+  option1   String   // 1번 선택지
+  option2   String   // 2번 선택지
+  option3   String   // 3번 선택지
+  option4   String   // 4번 선택지
+  answer    Int      // 정답 번호 (1 ~ 4)
+  createdAt DateTime @default(now())
+}
+
+model ExamHistory {
+  id             String   @id @default(uuid())
+  examId         String?  // 랜덤 풀이일 경우 null 가능
+  exam           Exam?    @relation(fields: [examId], references: [id], onDelete: SetNull)
+  isRandom       Boolean  @default(false)
+  score          Int      // 점수 (예: 85)
+  userAnswers    String   // 사용자 선택 답안 목록 (JSON string, 예: "[1,2,4,3...]")
+  correctAnswers String   // 실제 정답 목록 (JSON string, 예: "[1,2,2,3...]")
+  questionIds    String   // 풀었던 문제 ID 목록 (JSON string, 예: '["id1","id2"...]')
+  createdAt      DateTime @default(now())
+}
