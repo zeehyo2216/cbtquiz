@@ -18,7 +18,9 @@ export default function AdminPage() {
   const [adminPass, setAdminPass] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [examDate, setExamDate] = useState("20170305");
+  const [examTitle, setExamTitle] = useState("");
+  const [examDate, setExamDate] = useState("");
+  const [selectedManageExamId, setSelectedManageExamId] = useState("");
   const [questions, setQuestions] = useState<QuestionInput[]>(
     Array.from({ length: 60 }, (_, i) => ({
       number: i + 1,
@@ -84,7 +86,9 @@ export default function AdminPage() {
         answer: q.answer,
       }))
     );
-    setSubmitMessage({ type: "info", text: "60개 샘플 기출문제가 로드되었습니다. 날짜를 확인하고 등록하세요." });
+    setExamTitle("2017년 1회 정보처리기능사 필기");
+    setExamDate("2017-03-05");
+    setSubmitMessage({ type: "info", text: "60개 샘플 기출문제가 로드되었습니다. 날짜와 명칭을 확인하고 등록하세요." });
   };
 
   const handleEditLoad = async (examId: string) => {
@@ -94,6 +98,7 @@ export default function AdminPage() {
     setIsSubmitting(false);
     if (res.success && res.exam) {
       setExamDate(res.exam.date);
+      setExamTitle(res.exam.title);
       setEditingExamId(res.exam.id);
       
       const formattedQuestions = Array.from({ length: 60 }, (_, i) => {
@@ -120,7 +125,8 @@ export default function AdminPage() {
 
   const handleCancelEdit = () => {
     setEditingExamId(null);
-    setExamDate("20170305");
+    setExamDate("");
+    setExamTitle("");
     setQuestions(
       Array.from({ length: 60 }, (_, i) => ({
         number: i + 1,
@@ -148,6 +154,7 @@ export default function AdminPage() {
 
     if (res.success) {
       setSubmitMessage({ type: "success", text: "시험이 성공적으로 삭제되었습니다." });
+      setSelectedManageExamId("");
       fetchExamsList();
       if (editingExamId === examId) {
         handleCancelEdit();
@@ -170,7 +177,7 @@ export default function AdminPage() {
       }
     }
 
-    const res = await registerExam(examDate, adminPass, questions);
+    const res = await registerExam(editingExamId, examTitle, examDate, adminPass, questions);
     setIsSubmitting(false);
 
     if (res.success) {
@@ -193,7 +200,9 @@ export default function AdminPage() {
           answer: 1,
         }))
       );
-      setExamDate("20170305");
+      setExamDate("");
+      setExamTitle("");
+      setSelectedManageExamId("");
       setActiveIdx(0);
     } else {
       setSubmitMessage({ type: "error", text: res.error || "등록 도중 오류가 발생했습니다." });
@@ -276,35 +285,46 @@ export default function AdminPage() {
               ) : exams.length === 0 ? (
                 <div className="text-center py-6 text-slate-500 text-xs">등록된 시험이 없습니다.</div>
               ) : (
-                <div className="divide-y divide-[#1e293b]/40">
-                  {exams.map((ex) => (
-                    <div key={ex.id} className="py-3 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-200">{ex.title}</h4>
-                        <p className="text-[10px] text-slate-500 mt-0.5">날짜: {ex.date} • 문항 수: {ex._count?.questions || 0}개</p>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Button
-                          onClick={() => handleEditLoad(ex.id)}
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 text-xs gap-1 px-2.5 rounded-lg border border-indigo-500/15"
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                          <span>수정</span>
-                        </Button>
-                        <Button
-                          onClick={() => handleDelete(ex.id, ex.title)}
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs gap-1 px-2.5 rounded-lg border border-rose-500/15"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span>삭제</span>
-                        </Button>
-                      </div>
+                <div className="flex flex-col gap-3">
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedManageExamId}
+                      onChange={(e) => setSelectedManageExamId(e.target.value)}
+                      className="bg-[#0f172a]/60 border border-[#1e293b] text-white focus:ring-indigo-500 text-xs flex-1 h-10 rounded-xl px-3 outline-none"
+                    >
+                      <option value="" className="bg-[#0f172a] text-slate-400">관리할 시험을 선택해 주세요</option>
+                      {exams.map((ex) => (
+                        <option key={ex.id} value={ex.id} className="bg-[#0f172a] text-slate-200">
+                          {ex.title} (날짜: {ex.date})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedManageExamId && (
+                    <div className="flex items-center gap-1.5 shrink-0 justify-end">
+                      <Button
+                        onClick={() => handleEditLoad(selectedManageExamId)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 text-xs gap-1 px-3.5 rounded-lg border border-indigo-500/15"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                        <span>선택한 시험 수정</span>
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const ex = exams.find(e => e.id === selectedManageExamId);
+                          if (ex) handleDelete(ex.id, ex.title);
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs gap-1 px-3.5 rounded-lg border border-rose-500/15"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>선택한 시험 삭제</span>
+                      </Button>
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </CardContent>
@@ -319,13 +339,23 @@ export default function AdminPage() {
           <Card className="bg-[#1e293b]/20 border-[#1e293b]/80 rounded-xl">
             <CardContent className="p-4 space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="exam-date" className="text-slate-300 text-xs font-medium">시험 날짜 입력</Label>
+                <Label htmlFor="exam-title" className="text-slate-300 text-xs font-medium">기출문제 명칭 (자유형식)</Label>
+                <Input
+                  id="exam-title"
+                  value={examTitle}
+                  onChange={(e) => setExamTitle(e.target.value)}
+                  placeholder="예: 2026년 1회 정보처리기능사 필기"
+                  className="bg-[#0f172a]/60 border-[#1e293b] text-white focus-visible:ring-indigo-500 text-sm h-10"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="exam-date" className="text-slate-300 text-xs font-medium">기출문제 일자</Label>
                 <div className="flex gap-2">
                   <Input
                     id="exam-date"
                     value={examDate}
                     onChange={(e) => setExamDate(e.target.value)}
-                    placeholder="예: 20170305 (YYYYMMDD)"
+                    placeholder="예: 2026-07-06"
                     className="bg-[#0f172a]/60 border-[#1e293b] text-white focus-visible:ring-indigo-500 text-sm flex-1 h-10"
                   />
                   <Button
@@ -338,9 +368,6 @@ export default function AdminPage() {
                     <span>샘플 문항 불러오기</span>
                   </Button>
                 </div>
-                <p className="text-slate-500 text-[10px]">
-                  * YYYYMMDD 8자리로 입력 시 &apos;YYYY년 MM월 DD일 실시 기출문제&apos;로 자동 이름이 지정됩니다.
-                </p>
               </div>
             </CardContent>
           </Card>

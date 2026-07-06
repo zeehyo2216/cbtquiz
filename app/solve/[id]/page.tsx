@@ -1,16 +1,16 @@
-import { getExamByDate } from "@/app/actions/questions";
+import { getExamDetail } from "@/app/actions/questions";
 import CbtSolver from "@/components/CbtSolver";
 import { notFound } from "next/navigation";
 
 interface PageProps {
-  params: Promise<{ date: string }>;
+  params: Promise<{ id: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
 export default async function SolveExamPage({ params }: PageProps) {
-  const { date } = await params;
-  const { success, exam } = await getExamByDate(date);
+  const { id } = await params;
+  const { success, exam } = await getExamDetail(id);
 
   if (!success || !exam) {
     notFound();

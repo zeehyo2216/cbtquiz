@@ -20,26 +20,26 @@ interface ExamSelectorProps {
 
 export default function ExamSelector({ exams }: ExamSelectorProps) {
   const router = useRouter();
-  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedId, setSelectedId] = useState("");
 
   const handleStart = () => {
-    if (!selectedDate) return;
-    router.push(`/solve/${selectedDate}`);
+    if (!selectedId) return;
+    router.push(`/solve/${selectedId}`);
   };
 
   return (
     <div className="space-y-4">
       <div className="relative">
         <select
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
           className="w-full bg-[#1e293b]/40 border border-[#1e293b]/80 hover:border-indigo-500/30 text-slate-200 text-xs font-semibold rounded-xl h-11 px-4 appearance-none outline-none focus:ring-1 focus:ring-indigo-500/40 focus:border-indigo-500/50 transition-all duration-200"
         >
           <option value="" className="bg-[#0f172a] text-slate-400">
             기출 회차를 선택하세요
           </option>
           {exams.map((exam) => (
-            <option key={exam.id} value={exam.date} className="bg-[#0f172a] text-slate-200">
+            <option key={exam.id} value={exam.id} className="bg-[#0f172a] text-slate-200">
               {exam.title} ({exam._count.questions}문항)
             </option>
           ))}
@@ -50,7 +50,7 @@ export default function ExamSelector({ exams }: ExamSelectorProps) {
       </div>
       <Button
         onClick={handleStart}
-        disabled={!selectedDate}
+        disabled={!selectedId}
         className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-11 rounded-xl shadow-lg shadow-indigo-600/10 flex items-center justify-center gap-1.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Play className="h-4 w-4 fill-current ml-0.5" />

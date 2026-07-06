@@ -16,14 +16,24 @@ export interface QuestionInput {
   answer: number;
 }
 
-export async function registerExam(date: string, password: string, questions: QuestionInput[]) {
+export async function registerExam(
+  id: string | null,
+  title: string,
+  date: string,
+  password: string,
+  questions: QuestionInput[]
+) {
   try {
     if (password !== ADMIN_PASSWORD) {
       return { success: false, error: "관리자 비밀번호가 올바르지 않습니다." };
     }
 
-    if (!/^\d{8}$/.test(date)) {
-      return { success: false, error: "시험 날짜는 YYYYMMDD 형식의 8자리 숫자여야 합니다." };
+    if (!title.trim()) {
+      return { success: false, error: "기출문제 명칭을 입력해 주세요." };
+    }
+
+    if (!date.trim()) {
+      return { success: false, error: "기출문제 일자를 입력해 주세요." };
     }
 
     if (questions.length === 0) {
@@ -33,34 +43,38 @@ export async function registerExam(date: string, password: string, questions: Qu
     // Sort questions by number
     const sortedQuestions = [...questions].sort((a, b) => a.number - b.number);
 
-    const year = date.substring(0, 4);
-    const month = date.substring(4, 6);
-    const day = date.substring(6, 8);
-    const title = `${year}년 ${month}월 ${day}일 실시 기출문제`;
-
     await db.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Delete existing exam if it exists
-      const existing = await tx.exam.findUnique({
-        where: { date }
-      });
-      if (existing) {
-        await tx.exam.delete({
-          where: { id: existing.id }
-        });
-      }
+      let examId = id;
 
-      // Create new exam
-      const exam = await tx.exam.create({
-        data: {
-          date,
-          title,
-        }
-      });
+      if (examId) {
+        // Delete existing questions of this exam
+        await tx.question.deleteMany({
+          where: { examId }
+        });
+
+        // Update exam title and date
+        await tx.exam.update({
+          where: { id: examId },
+          data: {
+            title,
+            date,
+          }
+        });
+      } else {
+        // Create new exam
+        const exam = await tx.exam.create({
+          data: {
+            title,
+            date,
+          }
+        });
+        examId = exam.id;
+      }
 
       // Create questions
       await tx.question.createMany({
         data: sortedQuestions.map((q) => ({
-          examId: exam.id,
+          examId: examId as string,
           number: q.number,
           content: q.content,
           option1: q.option1,
@@ -119,7 +133,7 @@ export async function getExamDetail(examId: string) {
 
 export async function getExamByDate(date: string) {
   try {
-    const exam = await db.exam.findUnique({
+    const exam = await db.exam.findFirst({
       where: { date },
       include: {
         questions: {
@@ -137,9 +151,14 @@ export async function getExamByDate(date: string) {
   }
 }
 
-export async function getRandomQuestions(limit = 60) {
+export async function getRandomQuestions(limit = 60, examIds?: string[]) {
   try {
+    const whereClause = examIds && examIds.length > 0 ? {
+      examId: { in: examIds }
+    } : {};
+
     const allQuestions = await db.question.findMany({
+      where: whereClause,
       include: {
         exam: true
       }

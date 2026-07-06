@@ -11,7 +11,7 @@ datasource db {
 
 model Exam {
   id        String   @id @default(uuid())
-  date      String   @unique // 예: "20170305"
+  date      String   // 예: "20170305"
   title     String   // 예: "2017년 3월 5일 기출문제"
   createdAt DateTime @default(now())
   questions Question[]

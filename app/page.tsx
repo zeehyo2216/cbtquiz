@@ -51,35 +51,6 @@ export default async function Home() {
           </div>
         </div> */}
 
-        {/* Admin Trigger Section */}
-        <section className="space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            시험 데이터 관리
-          </h3>
-          <Link href="/admin" className="block group">
-            <Card className="bg-[#1e293b]/30 hover:bg-[#1e293b]/60 border-[#1e293b]/80 hover:border-indigo-500/50 transition-all duration-300 shadow-lg rounded-2xl overflow-hidden cursor-pointer">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/15 group-hover:scale-105 transition-transform duration-300">
-                    <PlusCircle className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white group-hover:text-indigo-300 transition-colors duration-200 text-sm">
-                      새로운 기출문제 등록하기
-                    </h4>
-                    <p className="text-slate-400 text-[11px] mt-0.5">
-                      시험 날짜별 문제 및 정답 등록 (관리자 암호 필요)
-                    </p>
-                  </div>
-                </div>
-                <div className="h-8 w-8 rounded-full bg-[#1e293b]/50 group-hover:bg-indigo-500/20 flex items-center justify-center text-slate-400 group-hover:text-indigo-300 transition-colors duration-200">
-                  <ChevronRight className="h-4 w-4" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        </section>
-
         {/* Random Exam Trigger */}
         <section className="space-y-3">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -118,11 +89,40 @@ export default async function Home() {
             <Card className="bg-[#1e293b]/20 border-dashed border-[#1e293b]/80 p-8 rounded-2xl flex flex-col items-center justify-center text-center">
               <HelpCircle className="h-10 w-10 text-slate-600 mb-3" />
               <p className="text-slate-400 text-sm font-medium">등록된 기출문제가 없습니다.</p>
-              <p className="text-slate-500 text-[11px] mt-1">위의 &apos;새로운 기출문제 등록하기&apos;를 눌러 시험을 등록하세요.</p>
+              <p className="text-slate-500 text-[11px] mt-1">아래의 &apos;새로운 기출문제 등록하기&apos;를 눌러 시험을 등록하세요.</p>
             </Card>
           ) : (
             <ExamSelector exams={exams} />
           )}
+        </section>
+
+        {/* Admin Trigger Section */}
+        <section className="space-y-3">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            시험 데이터 관리
+          </h3>
+          <Link href="/admin" className="block group">
+            <Card className="bg-[#1e293b]/30 hover:bg-[#1e293b]/60 border-[#1e293b]/80 hover:border-indigo-500/50 transition-all duration-300 shadow-lg rounded-2xl overflow-hidden cursor-pointer">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/15 group-hover:scale-105 transition-transform duration-300">
+                    <PlusCircle className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white group-hover:text-indigo-300 transition-colors duration-200 text-sm">
+                      새로운 기출문제 등록하기
+                    </h4>
+                    <p className="text-slate-400 text-[11px] mt-0.5">
+                      시험 날짜별 문제 및 정답 등록 (관리자 암호 필요)
+                    </p>
+                  </div>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-[#1e293b]/50 group-hover:bg-indigo-500/20 flex items-center justify-center text-slate-400 group-hover:text-indigo-300 transition-colors duration-200">
+                  <ChevronRight className="h-4 w-4" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </section>
       </div>
 
